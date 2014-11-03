@@ -12,3 +12,17 @@ NOTE: some images in ECE4 had the same source and sourceid as some articles maki
 ```
 update ArticleMetaContent set source = concat(source, '_img') where codeID = 2;
 ```
+
+Files exported are:
+- content_*.xml - this is the article fields. Also the <uri> element is exported
+- section-ref_true_*.xml - this is the home section refs.
+- section-ref_false_*.xml - this is all non-home section relations.
+- creator-*.xml - the creator refs.
+- author-*.xml - the author refs.
+- relation-*.xml - the article relations.
+They must be imported in that order.
+
+NOTE: To find out which sections are missing after the section-ref_*.xml imports run this oneliner:
+```
+grep ERROR /var/log/escenic/engine/ece-messages.log | sed "s/ /\\n/g" | grep unique-name | sort --unique
+```
