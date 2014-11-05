@@ -2,8 +2,7 @@
 
 OUT_DIR="/Users/stefan/Public/DropBox"
 
-DB_NAME="nwt_ece4"
-DB_USER="root"
+MYSQL_CMD="mysql -s --skip-column-names -u root nwt_ece4"
 
 PUB_ID="17" # NWT
 #PUB_ID="901840" # SLA
@@ -12,6 +11,14 @@ PUB_ID="17" # NWT
 CONTENT_TYPES="'default', 'review', 'jobAd', 'textAd'"
 
 SKIP_ARTICLEIDS="10262, 1018702, 1022272, 1032622, 1032753, 1033329, 1034012, 1035181, 1035243, 1035302, 1035859, 1036155, 1036648, 1037297, 1037387, 1037612, 1037761, 1037843, 1039016, 1039417, 1040258, 1040584, 1040729, 1040781, 1041602, 1057077, 1068504, 1082980, 1110673, 1112312, 1136972, 1160884, 1168635, 11798, 1200486, 1213684, 1248914, 12520, 1315168, 1342719, 1390073, 1435899, 14511, 1462952, 1465148, 1499877, 1539312, 1604923, 1606398, 1609099, 1622287, 16241, 1630301, 1642135, 1645337, 16747, 16751, 16752, 16921, 16922, 17003, 17004, 17007, 17024, 17025, 17029, 17030, 17051, 17065, 17077, 17079, 17086, 17087, 17088, 17626, 17663, 18589, 20534, 21609, 22191, 22338, 22942, 23455, 23592, 24776, 25661, 27926, 28980, 29273, 29274, 29518, 30418, 31366, 31563, 31598, 31958, 32989, 33443, 33780, 34192, 34819, 34950, 37087, 37821, 38004, 38891, 39243, 39278, 43811, 43889, 444058, 444786, 444788, 452723, 453379, 45682, 46010, 46251, 46360, 473221, 47668, 488871, 489490, 48956, 489599, 490679, 492650, 495899, 49650, 499262, 499650, 50083, 501181, 503496, 505509, 50792, 509862, 510153, 510729, 513590, 514785, 51848, 518888, 518890, 518895, 519381, 521212, 523468, 52490, 525952, 526723, 529858, 532989, 534331, 534652, 537733, 54090, 542126, 543805, 544894, 545113, 545740, 547896, 551619, 551718, 555732, 555733, 556192, 556808, 557532, 557631, 562096, 563198, 564758, 566191, 566331, 566780, 566959, 568345, 568806, 568992, 569329, 570338, 57159, 571819, 573113, 573280, 57332, 577152, 577163, 577966, 578579, 578935, 578937, 582173, 582876, 58326, 583956, 584209, 584614, 586580, 586708, 588071, 588365, 588421, 589136, 589284, 591067, 59164, 593048, 593087, 593983, 594888, 59494, 596167, 596215, 596551, 59760, 599724, 603747, 603748, 605370, 608182, 608333, 609381, 610107, 61229, 612783, 613232, 62783, 637858, 63976, 64498, 65921, 66164, 66920, 66922, 673489, 677420, 67875, 67917, 681362, 68406, 70102, 70210, 70481, 717830, 72112, 728886, 73455, 73473, 739307, 739308, 740000, 740047, 771076, 774831, 779940, 799649, 814290, 823326, 823327, 823328, 841736, 849721, 858117, 858985, 863285, 871142, 871148, 871152, 871698, 875588, 876626, 879717, 881797, 882106, 882432, 882676, 883560, 885268, 888888, 888987, 891469, 892733, 899550, 900202, 902013, 903063, 907317, 911334, 912113, 914174, 915776, 920741, 920742, 920746, 920794, 921557, 924211, 926078, 927667, 929133, 938080, 955994, 960784, 962245, 979202, 979205, 985764, 989671, 997997, 998118, 998135"
+
+
+# Enabled exports
+ENABLE_CONTENT=true
+ENABLE_SECTION_REF=true
+ENABLE_CREATOR_AUTHOR=true
+ENABLE_RELATION=true
+
 
 # Tillagda sektioner
 # - ece_val2010
@@ -39,8 +46,7 @@ and ArticleMetaContent.articleID = 1411931
 
 	order by ArticleMetaContent.articleID
 	limit 100"
-#echo $artid_query
-#exit
+
 # create output dir
 if [ ! -d $OUT_DIR ]; then
 	mkdir $OUT_DIR;
@@ -50,6 +56,8 @@ while read line
 do
     row=($line)
     articleID=${row[0]}
+
+if $ENABLE_CONTENT; then
 
 	filename="content_$articleID.xml"
 
@@ -345,12 +353,13 @@ do
 	    ArticleMetaContent.Art_codeID = ArticleState.codeID and
 	    ArticleMetaContent.articleID = $articleID
     "
-    mysql -s --raw --skip-column-names --default-character-set=utf8 -u $DB_USER $DB_NAME -e "${query}" >> $OUT_DIR/$filename;
+    $MYSQL_CMD --raw --default-character-set=utf8 -e "${query}" >> $OUT_DIR/$filename;
 
 
     echo "</escenic>" >> $OUT_DIR/$filename;
 
-
+fi
+if $ENABLE_SECTION_REF; then
 
     # Create section-ref files
     echo "Creating section-ref XMLs for article $articleID";
@@ -377,7 +386,7 @@ do
 	    ArticleMetaContent, ArticleSection, Section
 	where
 		ArticleSection.sectionID = Section.sectionID and
-		Section.uniquename not in ('ece_all', 'ece_right_inner', 'ece_right_outer') and
+		Section.uniquename not in ('ece_all', 'ece_right_inner', 'ece_right_outer', 'ece_right_inner_val_2014') and
 	    ArticleSection.articleID = ArticleMetaContent.articleID and
 	    ArticleMetaContent.articleID = $articleID
     "
@@ -406,8 +415,10 @@ do
 		fi
 	    echo "</content>" >> $OUT_DIR/$filename;
 	    echo "</escenic>" >> $OUT_DIR/$filename;
-	done < <(mysql -s --skip-column-names -u $DB_USER $DB_NAME -e "${query}")
+	done < <($MYSQL_CMD -e "${query}")
 
+fi
+if $ENABLE_CREATOR_AUTHOR; then
 
     # Create creator and author files
 
@@ -450,8 +461,10 @@ do
 	    echo "</content>" >> $OUT_DIR/$filename;
 	    echo "</escenic>" >> $OUT_DIR/$filename;
 
-	done < <(mysql -s --skip-column-names -u $DB_USER $DB_NAME -e "${query}")
+	done < <($MYSQL_CMD -e "${query}")
 
+fi
+if $ENABLE_RELATION; then
 
     # Create relation files
 
@@ -459,7 +472,12 @@ do
 
 	query="
 	select
-		upper(RelationType.codeText), ArticleRelation.Art_articleID, amc.source, amc.sourceIDStr, amc2.source, amc2.sourceIDStr
+		upper(RelationType.codeText),
+		ArticleRelation.Art_articleID,
+    ifnull(amc.source, 'nwt_ece4') as source,
+	  ifnull(amc.sourceIDStr, amc.articleID) as sourceIDStr,
+    ifnull(amc2.source, 'nwt_ece4') as source2,
+	  ifnull(amc2.sourceIDStr, amc2.articleID) as sourceIDStr2
 	from
 		ArticleRelation, ArticleMetaContent amc, ArticleMetaContent amc2, RelationType
 	where
@@ -488,10 +506,11 @@ do
 	    echo "</content>" >> $OUT_DIR/$filename;
 	    echo "</escenic>" >> $OUT_DIR/$filename;
 
-	done < <(mysql -s --skip-column-names -u $DB_USER $DB_NAME -e "${query}")
+	done < <($MYSQL_CMD -e "${query}")
 
+fi
 
-done < <(mysql -s --skip-column-names -u $DB_USER $DB_NAME -e "${artid_query}")
+done < <($MYSQL_CMD -e "${artid_query}")
 
 
 
