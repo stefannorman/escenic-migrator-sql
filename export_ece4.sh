@@ -14,11 +14,11 @@ SKIP_ARTICLEIDS="10262, 1018702, 1022272, 1032622, 1032753, 1033329, 1034012, 10
 
 
 # Enabled exports
-ENABLE_CONTENT=true
-ENABLE_SECTION_REF=true
-ENABLE_CREATOR_AUTHOR=true
-ENABLE_RELATION=true
-
+ENABLE_CONTENT=false
+ENABLE_SECTION_REF=false
+ENABLE_CREATOR_AUTHOR=false
+ENABLE_RELATION=false
+ENABLE_MEDIA=true
 
 # Tillagda sektioner
 # - ece_val2010
@@ -470,22 +470,22 @@ if $ENABLE_RELATION; then
 
     echo "Creating relation XMLs for article $articleID";
 
-	query="
-	select
-		upper(RelationType.codeText),
-		ArticleRelation.Art_articleID,
-    ifnull(amc.source, 'nwt_ece4') as source,
-	  ifnull(amc.sourceIDStr, amc.articleID) as sourceIDStr,
-    ifnull(amc2.source, 'nwt_ece4') as source2,
-	  ifnull(amc2.sourceIDStr, amc2.articleID) as sourceIDStr2
-	from
-		ArticleRelation, ArticleMetaContent amc, ArticleMetaContent amc2, RelationType
-	where
-		amc.articleID = ArticleRelation.articleID and
-		amc2.articleID = ArticleRelation.Art_articleID and
-		RelationType.codeID = ArticleRelation.codeID and
-		ArticleRelation.articleID = $articleID
-	"
+		query="
+		select
+			upper(RelationType.codeText),
+			ArticleRelation.Art_articleID,
+	    ifnull(amc.source, 'nwt_ece4') as source,
+		  ifnull(amc.sourceIDStr, amc.articleID) as sourceIDStr,
+	    ifnull(amc2.source, 'nwt_ece4') as source2,
+		  ifnull(amc2.sourceIDStr, amc2.articleID) as sourceIDStr2
+		from
+			ArticleRelation, ArticleMetaContent amc, ArticleMetaContent amc2, RelationType
+		where
+			amc.articleID = ArticleRelation.articleID and
+			amc2.articleID = ArticleRelation.Art_articleID and
+			RelationType.codeID = ArticleRelation.codeID and
+			ArticleRelation.articleID = $articleID
+		"
 
     while read line
 		do
@@ -506,7 +506,69 @@ if $ENABLE_RELATION; then
 	    echo "</content>" >> $OUT_DIR/$filename;
 	    echo "</escenic>" >> $OUT_DIR/$filename;
 
-	done < <($MYSQL_CMD -e "${query}")
+		done < <($MYSQL_CMD -e "${query}")
+
+fi
+if $ENABLE_MEDIA; then
+
+    # Create media files
+
+    echo "Creating media XMLs for article $articleID";
+
+		query="
+		select
+			if(
+				ReferenceAttribute.aValue='TITLE','LEAD',
+				if(
+					ReferenceAttribute.aValue='BODY','RELATED',
+					if(
+						ReferenceAttribute.aValue='TEASERHEADING','TEASER',
+						ReferenceAttribute.aValue
+					)
+				)
+			) as relationBox,
+			Reference.relationID,
+	    ifnull(ArticleMetaContent.source, 'nwt_ece4') as source,
+		  ifnull(ArticleMetaContent.sourceIDStr, ArticleMetaContent.articleID) as sourceIDStr,
+			ifnull(ReferenceEntity.source, 'nwt_ece4') as source,
+			ifnull(ReferenceEntity.sourceid, ReferenceEntity.referenceID) as sourceIDStr
+		from
+			ArticleMetaContent, Reference, ReferenceEntity, ReferenceAttribute, ReferenceType
+		where
+			ArticleMetaContent.articleID = Reference.articleID and
+			Reference.referenceID = ReferenceEntity.referenceID and
+			Reference.relationID = ReferenceAttribute.relationID and
+			ReferenceAttribute.aKey = 'element' and
+			ReferenceAttribute.aValue != 'COLUMNHEADING' and
+			Reference.codeID = ReferenceType.codeID and
+			ReferenceType.codeText = 'image' and
+			Reference.articleID = $articleID
+		order by
+			Reference.priority
+		"
+
+    while read line
+		do
+	    row=($line)
+	    relationBox=${row[0]}
+	    relationID=${row[1]}
+	    sourceStr=${row[2]}
+	    sourceIDStr=${row[3]}
+	    relationSourceStr=${row[4]}
+	    relationSourceIDStr=${row[5]}
+
+	    filename="media-$articleID-$relationID.xml"
+
+    	echo "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>" > $OUT_DIR/$filename;
+    	echo "<escenic xmlns=\"http://xmlns.escenic.com/2009/import\" version=\"2.0\">" >> $OUT_DIR/$filename;
+			echo "<content source=\"$sourceStr\" sourceid=\"$sourceIDStr\">" >> $OUT_DIR/$filename;
+			echo "<relation type=\"$relationBox\" source=\"$relationSourceStr\" sourceid=\"$relationSourceIDStr\"/>" >> $OUT_DIR/$filename;
+	    echo "</content>" >> $OUT_DIR/$filename;
+	    echo "</escenic>" >> $OUT_DIR/$filename;
+
+		done < <($MYSQL_CMD -e "${query}")
+
+
 
 fi
 
