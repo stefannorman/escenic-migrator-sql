@@ -1,7 +1,10 @@
 escenic-migrator-sql
 ====================
 
-A shell script using SQL to migrate Escenic article data from version 4 to version 5
+My task was to migrate NWT from Escenic 4.3 to Escenic 5.7. I used the ECE migration tools for migrating sections, users and media.
+But when it came to the articles I found the Escenic migration plugins hard to use. Mainly because of poor user interface and inadequate error handling. 
+
+To get more control I wrote this rather large shell script that exports all relevant (to me) article data to ECE 5 syndication files. The script uses SQL to export Escenic 4 article data.
 
 Use the script to export articles from an Escenic 4 database. It produces a lot of files in Escenic 5 syndication format. The files can then be imported directly using the standard import functionality in Escenic 5.
 
